@@ -3,9 +3,14 @@ import copy
 import keyboard
 
 w,h = 5,10
-h_offset = 2
+h_offset = 3
 mtx = [[0]*w for _ in range(h+h_offset)]
 mtx_screenshot = copy.deepcopy(mtx)
+
+def gameOver():
+    print("Game Over")
+    while True: 
+        pass
 
 def printMtx(matrix):
     for i in range(h):
@@ -68,16 +73,15 @@ def main():
         mtx.insert(0,[0]*w) #put an empty row in the front of the matrix
         if Validate(Forge(mtx,mtx_screenshot),sumMtx) == False :
             mtx = copy.deepcopy(tempMtx) #reloading matrix previous state
-            #mtx_screenshot = copy.deepcopy(mtx)
-            for i,row in enumerate(mtx):
-                for j,_ in enumerate(row):
-                    if mtx_screenshot[i][j] == 1 or mtx[i][j] == 1:
-                        mtx_screenshot[i][j] = 1
-                    else:
-                        mtx_screenshot[i][j] = 0
-            print("invalid fall")
+            mtx_screenshot = Forge(mtx,mtx_screenshot)
+            #print("invalid fall")
+            if 1 in mtx_screenshot[h_offset]:
+                gameOver()
             for i in range(len(mtx)):
                 mtx[i] = [0]*w
+            while 0 not in mtx_screenshot[len(mtx_screenshot)-1]: #last row is full
+                mtx_screenshot.pop(len(mtx)-1) #take the last element out
+                mtx_screenshot.insert(0,[0]*w) #put an empty row in the front of the matrix
             Place(1,2)
 
         sumMtx = Forge(mtx,mtx_screenshot)
