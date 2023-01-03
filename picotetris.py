@@ -9,8 +9,8 @@ sumMtx = []
 
 lock = _thread.allocate_lock()
 
-buttonR = Pin(14,Pin.IN,Pin.PULL_DOWN)
-buttonL = Pin(15,Pin.IN,Pin.PULL_DOWN)
+buttonR = Pin(16,Pin.IN,Pin.PULL_DOWN)
+buttonL = Pin(17,Pin.IN,Pin.PULL_DOWN)
 
 def Copy(matrix):
     mtxOut = []
@@ -71,7 +71,6 @@ def main():
     while True:
         #-----------//left//-----------
         if buttonL.value():
-            lock.acquire()
             for i in range(len(mtx)):
                 tempMtx = Copy(mtx)     #saving matrix state
                 mtx[i].pop(0)
@@ -80,12 +79,10 @@ def main():
                     mtx = Copy(tempMtx) #reloading matrix previous state
             sumMtx = Forge(mtx,mtx_screenshot)
             printMtx(sumMtx)
-            lock.release()
             while buttonL.value():pass
 
         #-----------//right//-----------
         if buttonR.value():
-            lock.acquire()
             for i in range(len(mtx)):
                 tempMtx = Copy(mtx)     #saving matrix state
                 mtx[i].pop(len(mtx[i])-1)
@@ -94,11 +91,9 @@ def main():
                     mtx = Copy(tempMtx) #reloading matrix previous state
             sumMtx = Forge(mtx,mtx_screenshot)
             printMtx(sumMtx)
-            lock.release()
             while buttonR.value():pass
         #-----------//falling//-----------
         if utime.ticks_diff(utime.ticks_ms(),last_interrupt) > 1000:
-            lock.acquire()
             tempMtx = Copy(mtx)     #saving matrix state
             mtx.pop(len(mtx)-1) #take the last element out
             mtx.insert(0,[0]*w) #put an empty row in the front of the matrix
@@ -118,7 +113,6 @@ def main():
             sumMtx = Forge(mtx,mtx_screenshot)
             printMtx(sumMtx)
             last_interrupt = utime.ticks_ms()
-            lock.release()
 
 if __name__ == "__main__":
     main()
