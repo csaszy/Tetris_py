@@ -71,14 +71,14 @@ def displayMtx(matrix):
     ledMatrix.Input([matrix[i] for i in range(h_offset,h+h_offset)])
 
 def Place():
-    shape = shapes[1]#random.randint(0,len(shapes)-1)]
+    shape = shapes[3]#random.randint(0,len(shapes)-1)]
     x = random.randint(0,w - len(shape[0]))
     y = h_offset-len(shape)
     for i, row in enumerate(shape):
         for j,el in enumerate(row):
             if el:
                 mtx[i+y][j+x] = 1
-    return [-y,x],shape
+    return [y,x],shape
 
 def Forge(mtx1,mtx2):
     forgedMtx = [[0]*w for _ in range(h+h_offset)]
@@ -123,24 +123,27 @@ def main():
             tempMtx = Copy(mtx)     #saving matrix state
             
             shape_center = [len(shape)/2,len(shape[0])/2] # y,x
-            actual_center = [pos[0]-shape_center[0],pos[1]+shape_center[1]] # y,x
+            actual_center = [pos[0]+shape_center[0],pos[1]+shape_center[1]] # y,x
             print(pos, shape_center, actual_center)
             square_pos = []
             for i,row in enumerate(shape):
                 for j,square in enumerate(row):
                     if square == 1:
                         #finding the position of the 1's
-                        square_pos.append([i-shape_center[0],j-shape_center[1]])
+                        square_pos.append([i+0.5-shape_center[0],j+0.5-shape_center[1]])    #y-distance, x-distance
             new_square_pos = []
             for el in square_pos:
-                new_square_pos.append([el[1],el[0]*-1]) # this is the rotated matrix(basically flipping the positions: y --> x and x --> y, after that multipliing the second element with -1))
+                new_square_pos.append([el[1] + 0.5,el[0]*-1+0.5]) # this is the rotated matrix(basically flipping the positions: y --> x and x --> y, after that multipliing the second element with -1))
             #making the changes
             for square in square_pos:
                 print(actual_center,square)
-                mtx[int(actual_center[0]+square[0])][int(actual_center[1]+square[1])] = 0
+                #print(int(actual_center[0]+square[0]-0.5),int(actual_center[1]+square[1]-0.5))
+                mtx[int(actual_center[0]+square[0]-0.5)][int(actual_center[1]+square[1]-0.5)] = 0
+            print()
             for square in new_square_pos:
-                #mtx[int(actual_center[0]+square[0])][int(actual_center[1]+square[1])] = 1
+                mtx[int(actual_center[0]+square[0]-0.5)][int(actual_center[1]+square[1]-0.5)] = 1
                 print(actual_center,square)
+                pass
             #while buttonU.value():pass
             #while buttonU.value() == 0:pass
                 
@@ -182,13 +185,14 @@ def main():
             while buttonR.value():pass
         #-----------//falling//-----------
         if utime.ticks_diff(utime.ticks_ms(),last_interrupt) > 2000:
-            pos[0] -= 1
+            pos[0] += 1
             tempMtx = Copy(mtx)     #saving matrix state
             mtx.pop(len(mtx)-1) #take the last element out
             mtx.insert(0,[0]*w) #put an empty row in the front of the matrix
             if Validate(Forge(mtx,mtx_screenshot),sumMtx) == False :
                 mtx = Copy(tempMtx) #reloading matrix previous state
                 mtx_screenshot = Forge(mtx,mtx_screenshot)
+                pos[0] -= 1
                 #print("invalid fall")
                 if 1 in mtx_screenshot[h_offset]:
                     gameOver()
@@ -210,4 +214,5 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
