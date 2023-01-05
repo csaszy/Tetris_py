@@ -6,6 +6,7 @@ import random
 import sys
 import math
 
+fall_wait = 1
 w,h = 8,8
 h_offset = 3
 mtx = [[0]*w for _ in range(h+h_offset)]
@@ -71,7 +72,7 @@ def displayMtx(matrix):
     ledMatrix.Input([matrix[i] for i in range(h_offset,h+h_offset)])
 
 def Place():
-    shape = shapes[3]#random.randint(0,len(shapes)-1)]
+    shape = shapes[random.randint(0,len(shapes)-1)]
     x = random.randint(0,w - len(shape[0]))
     y = h_offset-len(shape)
     for i, row in enumerate(shape):
@@ -110,6 +111,8 @@ def main():
     pos,shape = Place()
     rot_state = 0
     
+    urelease = True
+    
     sumMtx = Forge(mtx,mtx_screenshot)
     displayMtx(sumMtx)
     printMtx(sumMtx)
@@ -119,11 +122,14 @@ def main():
     _thread.start_new_thread(ledMatrix.main,())
     while True:
         #-----------//rotate//-----------
-        if buttonU.value():
+        if buttonU.value() and urelease:
+            urelease = False
             tempMtx = Copy(mtx)     #saving matrix state
             
             shape_center = [len(shape)/2,len(shape[0])/2] # y,x
             actual_center = [pos[0]+shape_center[0],pos[1]+shape_center[1]] # y,x
+            rotated_shape = [[0]*len(shape) for _ in range(len(shape[0]))]
+            
             print(pos, shape_center, actual_center)
             square_pos = []
             for i,row in enumerate(shape):
@@ -138,21 +144,38 @@ def main():
             for square in square_pos:
                 print(actual_center,square)
                 #print(int(actual_center[0]+square[0]-0.5),int(actual_center[1]+square[1]-0.5))
-                mtx[int(actual_center[0]+square[0]-0.5)][int(actual_center[1]+square[1]-0.5)] = 0
+                try:
+                    mtx[int(actual_center[0]+square[0]-0.5)][int(actual_center[1]+square[1]-0.5)] = 0
+                except:
+                    pass
             print()
-            for square in new_square_pos:
-                mtx[int(actual_center[0]+square[0]-0.5)][int(actual_center[1]+square[1]-0.5)] = 1
+            for i,square in enumerate(new_square_pos):
+                try:
+                    mtx[int(actual_center[0]+square[0]-0.5)][int(actual_center[1]+square[1]-0.5)] = 1
+                    rotated_shape[int(shape_center[1]+square[0]-0.5)][int(shape_center[0]+square[1]-0.5)] = 1   #preparing shape for next rotation
+                except:
+                    pass
                 print(actual_center,square)
-                pass
-            #while buttonU.value():pass
-            #while buttonU.value() == 0:pass
                 
             if Validate(Forge(mtx, mtx_screenshot),sumMtx) == False: # validating move, if INVALID then dont make that move
                 mtx = Copy(tempMtx) #reloading matrix previous state
+            else:    
+                pos = [int(actual_center[0]+((0+0.5-shape_center[1]) + 0.5)-0.5),int(actual_center[1]+((len(shape)-1+0.5-shape_center[0])*-1+0.5)-0.5)] # fixing position
+                shape = Copy(rotated_shape)
+                #print()
+                #print(((0+0.5-shape_center[1]) + 0.5))
+                #print(((len(rotated_shape)-1+0.5-shape_center[0])*-1+0.5))
+                #print(pos)
+            #print(shape)
+            #while buttonU.value():pass
+            #while buttonU.value() == 0:pass
+            
             sumMtx = Forge(mtx,mtx_screenshot)
             printMtx(sumMtx)
             displayMtx(sumMtx)
-            while buttonL.value():pass
+        elif buttonU.value() == 0 and urelease == False:
+            print('a')
+            urelease = True
             
         #-----------//left//-----------
         if buttonL.value():
@@ -184,7 +207,7 @@ def main():
             displayMtx(sumMtx)
             while buttonR.value():pass
         #-----------//falling//-----------
-        if utime.ticks_diff(utime.ticks_ms(),last_interrupt) > 2000:
+        if utime.ticks_diff(utime.ticks_ms(),last_interrupt) > fall_wait * 1000:
             pos[0] += 1
             tempMtx = Copy(mtx)     #saving matrix state
             mtx.pop(len(mtx)-1) #take the last element out
@@ -214,5 +237,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
-
