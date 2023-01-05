@@ -6,9 +6,9 @@ import random
 import sys
 import math
 
-fall_wait = 1
+fall_wait = 0.5
 w,h = 8,8
-h_offset = 3
+h_offset = 2
 mtx = [[0]*w for _ in range(h+h_offset)]
 sumMtx = []
 
@@ -21,15 +21,18 @@ buttonU = Pin(18,Pin.IN,Pin.PULL_DOWN)
 shapes = [
         [
             [0,1,0],
-            [1,1,1]
+            [1,1,1],
+            [0,0,0]
         ],
         [
             [1,0,0],
-            [1,1,1]
+            [1,1,1],
+            [0,0,0]
         ],
         [
             [0,0,1],
-            [1,1,1]
+            [1,1,1],
+            [0,0,0]
         ],
         [
             [1,1,1,1]
@@ -74,7 +77,7 @@ def displayMtx(matrix):
 def Place():
     shape = shapes[random.randint(0,len(shapes)-1)]
     x = random.randint(0,w - len(shape[0]))
-    y = h_offset-len(shape)
+    y = h_offset-len(shape) if h_offset-len(shape) > 0 else 0
     for i, row in enumerate(shape):
         for j,el in enumerate(row):
             if el:
@@ -109,9 +112,10 @@ def main():
     global sumMtx
     print('tetris time')
     pos,shape = Place()
-    rot_state = 0
     
-    urelease = True
+    releaseR = True
+    releaseL = True
+    releaseU = True
     
     sumMtx = Forge(mtx,mtx_screenshot)
     displayMtx(sumMtx)
@@ -122,8 +126,8 @@ def main():
     _thread.start_new_thread(ledMatrix.main,())
     while True:
         #-----------//rotate//-----------
-        if buttonU.value() and urelease:
-            urelease = False
+        if buttonU.value() and releaseU:
+            releaseU = False
             tempMtx = Copy(mtx)     #saving matrix state
             
             shape_center = [len(shape)/2,len(shape[0])/2] # y,x
@@ -135,50 +139,53 @@ def main():
             for i,row in enumerate(shape):
                 for j,square in enumerate(row):
                     if square == 1:
-                        #finding the position of the 1's
+                        #finding the position of the 1's relative to shape_center
                         square_pos.append([i+0.5-shape_center[0],j+0.5-shape_center[1]])    #y-distance, x-distance
             new_square_pos = []
             for el in square_pos:
                 new_square_pos.append([el[1] + 0.5,el[0]*-1+0.5]) # this is the rotated matrix(basically flipping the positions: y --> x and x --> y, after that multipliing the second element with -1))
+            
             #making the changes
             for square in square_pos:
-                print(actual_center,square)
-                #print(int(actual_center[0]+square[0]-0.5),int(actual_center[1]+square[1]-0.5))
+                #print(actual_center,square)
                 try:
                     mtx[int(actual_center[0]+square[0]-0.5)][int(actual_center[1]+square[1]-0.5)] = 0
                 except:
                     pass
-            print()
+            #print()
             for i,square in enumerate(new_square_pos):
                 try:
                     mtx[int(actual_center[0]+square[0]-0.5)][int(actual_center[1]+square[1]-0.5)] = 1
                     rotated_shape[int(shape_center[1]+square[0]-0.5)][int(shape_center[0]+square[1]-0.5)] = 1   #preparing shape for next rotation
                 except:
                     pass
-                print(actual_center,square)
+                #print(actual_center,square)
                 
             if Validate(Forge(mtx, mtx_screenshot),sumMtx) == False: # validating move, if INVALID then dont make that move
                 mtx = Copy(tempMtx) #reloading matrix previous state
-            else:    
-                pos = [int(actual_center[0]+((0+0.5-shape_center[1]) + 0.5)-0.5),int(actual_center[1]+((len(shape)-1+0.5-shape_center[0])*-1+0.5)-0.5)] # fixing position
+            else:
+                #getting ready for another rotation
+                pos = [int(actual_center[0]+((0+0.5-shape_center[1]) + 0.5)-0.5),int(actual_center[1]+((len(shape)-1+0.5-shape_center[0])*-1+0.5)-0.5)] # setting position to be always at the top left corner of the shape
+                                                                                                                                                        # (basically setting it where the current shape bottom left square would       
+                                                                                                                                                        #  rotate to, which will allways be the rotated shape's top left square)
                 shape = Copy(rotated_shape)
                 #print()
                 #print(((0+0.5-shape_center[1]) + 0.5))
                 #print(((len(rotated_shape)-1+0.5-shape_center[0])*-1+0.5))
                 #print(pos)
-            #print(shape)
             #while buttonU.value():pass
             #while buttonU.value() == 0:pass
             
             sumMtx = Forge(mtx,mtx_screenshot)
             printMtx(sumMtx)
             displayMtx(sumMtx)
-        elif buttonU.value() == 0 and urelease == False:
+        elif buttonU.value() == 0 and releaseU == False:
             print('a')
-            urelease = True
+            releaseU = True
             
         #-----------//left//-----------
-        if buttonL.value():
+        if buttonL.value() and releaseL:
+            releaseL = False
             tempMtx = Copy(mtx)     #saving matrix state
             pos[1] -= 1
             for i in range(len(mtx)):
@@ -190,10 +197,12 @@ def main():
             sumMtx = Forge(mtx,mtx_screenshot)
             printMtx(sumMtx)
             displayMtx(sumMtx)
-            while buttonL.value():pass
+        elif buttonL.value() == 0 and releaseL == False:
+            releaseL = True
 
         #-----------//right//-----------
-        if buttonR.value():
+        if buttonR.value() and releaseR:
+            releaseR = False
             tempMtx = Copy(mtx)     #saving matrix state
             pos[1] += 1 
             for i in range(len(mtx)):
@@ -205,7 +214,9 @@ def main():
             sumMtx = Forge(mtx,mtx_screenshot)
             printMtx(sumMtx)
             displayMtx(sumMtx)
-            while buttonR.value():pass
+        elif buttonR.value() == 0 and releaseR == False:
+            releaseR = True
+            
         #-----------//falling//-----------
         if utime.ticks_diff(utime.ticks_ms(),last_interrupt) > fall_wait * 1000:
             pos[0] += 1
@@ -217,7 +228,7 @@ def main():
                 mtx_screenshot = Forge(mtx,mtx_screenshot)
                 pos[0] -= 1
                 #print("invalid fall")
-                if 1 in mtx_screenshot[h_offset]:
+                if 1 in mtx_screenshot[h_offset-1]:
                     gameOver()
                     ledMatrix.Input([])
                     utime.sleep(1)
