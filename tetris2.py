@@ -1,8 +1,9 @@
 import random
 import time
 import screen
+import keyboard
 
-fall_wait = 0.5
+fall_wait = 1
 w,h = 8,8
 h_offset = 2
 mtx = [[0]*w for _ in range(h+h_offset)]
@@ -51,13 +52,16 @@ def printMtx(matrix):
     for i in range(h_offset):
         for j in matrix[i]:
             if j:
-                print(j,end="")
+                print("#",end=" ")
             else:
-                print('.',end="")
+                print('×',end=" ")
         print()
     for i in range(h):
         for j in matrix[i+h_offset]:
-            print(j,end="")
+            if j:
+                print("#",end=" ")
+            else:
+                print(".",end=" ")
         print()
     print()
     
@@ -96,6 +100,93 @@ def Validate(mtx,tempMtx):
        return False
     return True
 
+#-------------
+
+def Rotate(pos,shape):
+    global mtx
+    global mtx_screenshot
+    global sumMtx
+    tempMtx = Copy(mtx)     #saving matrix state
+    
+    shape_center = [len(shape)/2,len(shape[0])/2] # y,x
+    actual_center = [pos[0]+shape_center[0],pos[1]+shape_center[1]] # y,x
+    rotated_shape = [[0]*len(shape) for _ in range(len(shape[0]))]
+    
+    #print(pos, shape_center, actual_center)
+    square_pos = []
+    for i,row in enumerate(shape):
+        for j,square in enumerate(row):
+            if square == 1:
+                #finding the position of the 1's relative to shape_center
+                square_pos.append([i+0.5-shape_center[0],j+0.5-shape_center[1]])    #y-distance, x-distance
+    new_square_pos = []
+    for el in square_pos:
+        new_square_pos.append([el[1] + 0.5,el[0]*-1+0.5]) # this is the rotated matrix(basically flipping the positions: y --> x and x --> y, after that multipliing the second element with -1))
+    
+    #making the changes
+    for square in square_pos:
+        try:
+            mtx[int(actual_center[0]+square[0]-0.5)][int(actual_center[1]+square[1]-0.5)] = 0
+        except:
+            pass
+    for i,square in enumerate(new_square_pos):
+        try:
+            mtx[int(actual_center[0]+square[0]-0.5)][int(actual_center[1]+square[1]-0.5)] = 1
+            rotated_shape[int(shape_center[1]+square[0]-0.5)][int(shape_center[0]+square[1]-0.5)] = 1   #preparing shape for next rotation
+        except:
+            pass
+        
+    if Validate(Forge(mtx, mtx_screenshot),sumMtx) == False: # validating move, if INVALID then dont make that move
+        mtx = Copy(tempMtx) #reloading matrix previous state
+    else:
+        #getting ready for another rotation
+        pos = [int(actual_center[0]+((0+0.5-shape_center[1]) + 0.5)-0.5),int(actual_center[1]+((len(shape)-1+0.5-shape_center[0])*-1+0.5)-0.5)] # setting position to be always at the top left corner of the shape
+                                                                                                                                                # (basically setting it where the current shape bottom left square would       
+                                                                                                                                                #  rotate to, which will allways be the rotated shape's top left square)
+        shape = Copy(rotated_shape)
+    
+    sumMtx = Forge(mtx,mtx_screenshot)
+    printMtx(sumMtx)
+    displayMtx(sumMtx)
+    return pos,shape
+
+def Left(pos,shape):
+    global mtx
+    global mtx_screenshot
+    global sumMtx
+    tempMtx = Copy(mtx)     #saving matrix state
+    pos[1] -= 1
+    for i in range(len(mtx)):
+        mtx[i].pop(0)
+        mtx[i].append([0]*w)
+    if Validate(Forge(mtx, mtx_screenshot),sumMtx) == False: # validating move, if INVALID then dont make that move
+        mtx = Copy(tempMtx) #reloading matrix previous state
+        pos[1] += 1
+    sumMtx = Forge(mtx,mtx_screenshot)
+    printMtx(sumMtx)
+    displayMtx(sumMtx)
+    return pos,shape
+
+
+def Right(pos,shape):
+    global mtx
+    global mtx_screenshot
+    global sumMtx
+    tempMtx = Copy(mtx)     #saving matrix state
+    pos[1] += 1 
+    for i in range(len(mtx)):
+        mtx[i].pop(len(mtx[i])-1)
+        mtx[i].insert(0,[0]*w)
+    if Validate(Forge(mtx,mtx_screenshot),sumMtx) == False: # validating move, if INVALID then dont make that move
+        mtx = Copy(tempMtx) #reloading matrix previous state
+        pos[1] -= 1
+    sumMtx = Forge(mtx,mtx_screenshot)
+    printMtx(sumMtx)
+    displayMtx(sumMtx)
+    return pos,shape
+
+#-------------
+
 def main():
     global mtx
     global mtx_screenshot
@@ -115,90 +206,28 @@ def main():
     
     while True:
         #-----------//rotate//-----------
-        if buttonU.value() and releaseU:
+        if keyboard.is_pressed("w") and releaseU:
             releaseU = False
-            tempMtx = Copy(mtx)     #saving matrix state
-            
-            shape_center = [len(shape)/2,len(shape[0])/2] # y,x
-            actual_center = [pos[0]+shape_center[0],pos[1]+shape_center[1]] # y,x
-            rotated_shape = [[0]*len(shape) for _ in range(len(shape[0]))]
-            
-            print(pos, shape_center, actual_center)
-            square_pos = []
-            for i,row in enumerate(shape):
-                for j,square in enumerate(row):
-                    if square == 1:
-                        #finding the position of the 1's relative to shape_center
-                        square_pos.append([i+0.5-shape_center[0],j+0.5-shape_center[1]])    #y-distance, x-distance
-            new_square_pos = []
-            for el in square_pos:
-                new_square_pos.append([el[1] + 0.5,el[0]*-1+0.5]) # this is the rotated matrix(basically flipping the positions: y --> x and x --> y, after that multipliing the second element with -1))
-            
-            #making the changes
-            for square in square_pos:
-                try:
-                    mtx[int(actual_center[0]+square[0]-0.5)][int(actual_center[1]+square[1]-0.5)] = 0
-                except:
-                    pass
-            for i,square in enumerate(new_square_pos):
-                try:
-                    mtx[int(actual_center[0]+square[0]-0.5)][int(actual_center[1]+square[1]-0.5)] = 1
-                    rotated_shape[int(shape_center[1]+square[0]-0.5)][int(shape_center[0]+square[1]-0.5)] = 1   #preparing shape for next rotation
-                except:
-                    pass
-                
-            if Validate(Forge(mtx, mtx_screenshot),sumMtx) == False: # validating move, if INVALID then dont make that move
-                mtx = Copy(tempMtx) #reloading matrix previous state
-            else:
-                #getting ready for another rotation
-                pos = [int(actual_center[0]+((0+0.5-shape_center[1]) + 0.5)-0.5),int(actual_center[1]+((len(shape)-1+0.5-shape_center[0])*-1+0.5)-0.5)] # setting position to be always at the top left corner of the shape
-                                                                                                                                                        # (basically setting it where the current shape bottom left square would       
-                                                                                                                                                        #  rotate to, which will allways be the rotated shape's top left square)
-                shape = Copy(rotated_shape)
-            
-            sumMtx = Forge(mtx,mtx_screenshot)
-            printMtx(sumMtx)
-            displayMtx(sumMtx)
-        elif buttonU.value() == 0 and releaseU == False:
-            print('a')
+            pos,shape =  Rotate(pos,shape)
+        if not keyboard.is_pressed("w"):
             releaseU = True
             
         #-----------//left//-----------
-        if buttonL.value() and releaseL:
+        if keyboard.is_pressed("a") and releaseL:
             releaseL = False
-            tempMtx = Copy(mtx)     #saving matrix state
-            pos[1] -= 1
-            for i in range(len(mtx)):
-                mtx[i].pop(0)
-                mtx[i].append([0]*w)
-            if Validate(Forge(mtx, mtx_screenshot),sumMtx) == False: # validating move, if INVALID then dont make that move
-                mtx = Copy(tempMtx) #reloading matrix previous state
-                pos[1] += 1
-            sumMtx = Forge(mtx,mtx_screenshot)
-            printMtx(sumMtx)
-            displayMtx(sumMtx)
-        elif buttonL.value() == 0 and releaseL == False:
+            pos,shape =  Left(pos,shape)
+        if not keyboard.is_pressed("a"):
             releaseL = True
 
         #-----------//right//-----------
-        if buttonR.value() and releaseR:
+        if keyboard.is_pressed("d") and releaseR:
             releaseR = False
-            tempMtx = Copy(mtx)     #saving matrix state
-            pos[1] += 1 
-            for i in range(len(mtx)):
-                mtx[i].pop(len(mtx[i])-1)
-                mtx[i].insert(0,[0]*w)
-            if Validate(Forge(mtx,mtx_screenshot),sumMtx) == False: # validating move, if INVALID then dont make that move
-                mtx = Copy(tempMtx) #reloading matrix previous state
-                pos[1] -= 1
-            sumMtx = Forge(mtx,mtx_screenshot)
-            printMtx(sumMtx)
-            displayMtx(sumMtx)
-        elif buttonR.value() == 0 and releaseR == False:
+            pos,shape =  Right(pos,shape)
+        if not keyboard.is_pressed("d"):
             releaseR = True
             
         #-----------//falling//-----------
-        if time.time() -last_interrupt > fall_wait * 1000:
+        if time.time() -last_interrupt > fall_wait:
             pos[0] += 1
             tempMtx = Copy(mtx)     #saving matrix state
             mtx.pop(len(mtx)-1) #take the last element out
