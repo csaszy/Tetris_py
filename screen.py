@@ -1,0 +1,2 @@
+def Input(asd):
+    pass

@@ -1,22 +1,12 @@
-from machine import Pin
-import utime
-import _thread
-import ledMatrix
 import random
-import sys
-import math
+import time
+import screen
 
 fall_wait = 0.5
 w,h = 8,8
 h_offset = 2
 mtx = [[0]*w for _ in range(h+h_offset)]
 sumMtx = []
-
-lock = _thread.allocate_lock()
-
-buttonR = Pin(16,Pin.IN,Pin.PULL_DOWN)
-buttonL = Pin(17,Pin.IN,Pin.PULL_DOWN)
-buttonU = Pin(18,Pin.IN,Pin.PULL_DOWN)
 
 shapes = [
         [
@@ -72,7 +62,7 @@ def printMtx(matrix):
     print()
     
 def displayMtx(matrix):
-    ledMatrix.Input([matrix[i] for i in range(h_offset,h+h_offset)])
+    screen.Input([matrix[i] for i in range(h_offset,h+h_offset)])
 
 def Place():
     shape = shapes[random.randint(0,len(shapes)-1)]
@@ -121,9 +111,8 @@ def main():
     displayMtx(sumMtx)
     printMtx(sumMtx)
     
-    last_interrupt = utime.ticks_ms()
+    last_interrupt = time.time()
     
-    _thread.start_new_thread(ledMatrix.main,())
     while True:
         #-----------//rotate//-----------
         if buttonU.value() and releaseU:
@@ -147,19 +136,16 @@ def main():
             
             #making the changes
             for square in square_pos:
-                #print(actual_center,square)
                 try:
                     mtx[int(actual_center[0]+square[0]-0.5)][int(actual_center[1]+square[1]-0.5)] = 0
                 except:
                     pass
-            #print()
             for i,square in enumerate(new_square_pos):
                 try:
                     mtx[int(actual_center[0]+square[0]-0.5)][int(actual_center[1]+square[1]-0.5)] = 1
                     rotated_shape[int(shape_center[1]+square[0]-0.5)][int(shape_center[0]+square[1]-0.5)] = 1   #preparing shape for next rotation
                 except:
                     pass
-                #print(actual_center,square)
                 
             if Validate(Forge(mtx, mtx_screenshot),sumMtx) == False: # validating move, if INVALID then dont make that move
                 mtx = Copy(tempMtx) #reloading matrix previous state
@@ -169,12 +155,6 @@ def main():
                                                                                                                                                         # (basically setting it where the current shape bottom left square would       
                                                                                                                                                         #  rotate to, which will allways be the rotated shape's top left square)
                 shape = Copy(rotated_shape)
-                #print()
-                #print(((0+0.5-shape_center[1]) + 0.5))
-                #print(((len(rotated_shape)-1+0.5-shape_center[0])*-1+0.5))
-                #print(pos)
-            #while buttonU.value():pass
-            #while buttonU.value() == 0:pass
             
             sumMtx = Forge(mtx,mtx_screenshot)
             printMtx(sumMtx)
@@ -218,7 +198,7 @@ def main():
             releaseR = True
             
         #-----------//falling//-----------
-        if utime.ticks_diff(utime.ticks_ms(),last_interrupt) > fall_wait * 1000:
+        if time.time() -last_interrupt > fall_wait * 1000:
             pos[0] += 1
             tempMtx = Copy(mtx)     #saving matrix state
             mtx.pop(len(mtx)-1) #take the last element out
@@ -227,11 +207,10 @@ def main():
                 mtx = Copy(tempMtx) #reloading matrix previous state
                 mtx_screenshot = Forge(mtx,mtx_screenshot)
                 pos[0] -= 1
-                #print("invalid fall")
                 if 1 in mtx_screenshot[h_offset-1]:
                     gameOver()
-                    ledMatrix.Input([])
-                    utime.sleep(1)
+                    screen.Input([])
+                    time.sleep(1)
                     return
                 for i in range(len(mtx)):
                     mtx[i] = [0]*w
@@ -244,7 +223,7 @@ def main():
             sumMtx = Forge(mtx,mtx_screenshot)
             printMtx(sumMtx)
             displayMtx(sumMtx)
-            last_interrupt = utime.ticks_ms()
+            last_interrupt = time.time()
 
 if __name__ == "__main__":
     main()
